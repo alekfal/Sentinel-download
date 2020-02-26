@@ -5,7 +5,7 @@ import optparse
 from xml.dom import minidom
 from datetime import date
 import pandas as pd
-
+import csv
 class OptionParser (optparse.OptionParser):
     
     def check_required(self, opt):
@@ -86,6 +86,16 @@ def coords_from_tiles(tile):
         print('Tile {} is not in the list. Use --lat and --lon instead while trying to run this code.')
     else:
         return (lon[index], lat[index])   
+
+def response2CSV(response_date, response_filename, response_cloud):
+    headers = ['Date', 'File', 'Cloud']
+    rows = sorted(zip(response_date, response_filename, response_cloud))
+    csvfile = 'report.csv'
+    with open(csvfile, 'w') as myfile:
+        wr = csv.writer(myfile)#, quoting=csv.QUOTE_ALL)
+        wr.writerow(headers)
+        for row in rows:
+            wr.writerow(row)
 
 def main():
 
@@ -280,6 +290,7 @@ def main():
         request_list = [commande_wget]
 
 
+    response_date, response_filename, response_cloud = [], [], []
     # =======================
     # parse catalog output
     # =======================
@@ -327,8 +338,11 @@ def main():
                             print ("Cloud percentage = {}%".format(cloud))
                 else:
                     cloud = 0
-
                 print("===============================================\n")
+
+                response_date.append(date_prod)
+                response_filename.append(filename)
+                response_cloud.append(cloud)
 
                 # ==================================download  whole product
                 if(cloud < options.max_cloud or (options.sentinel.find("S1") >= 0)) and options.tile is None:
@@ -454,6 +468,8 @@ def main():
                             while os.path.getsize("granule.xml") == 0:  # in case of "bad gateway error"
                                 os.system(commande_wget)
                             download_tree(nom_rep_tuile, "granule.xml", wg, auth, wg_opt, value)
+    if options.no_download == True:
+        response2CSV(response_date, response_filename, response_cloud)
 
 if __name__ == "__main__":
     main()
